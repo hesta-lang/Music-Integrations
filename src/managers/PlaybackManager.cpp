@@ -198,7 +198,7 @@ void PlaybackManager::removeMediaManager() {
 
 void PlaybackManager::isPlaybackActive(std::function<void(bool)> callback) {
     if (!isWindows()) {
-        if (!Mod::get()->getSavedValue<bool>("hasAuthorized")) {callback(false); return; }
+        if (!Mod::get()->getSavedValue<bool>("hasAuthorizedAndroid")) {callback(false); return; }
 
         std::string token = Mod::get()->getSavedValue<std::string>("spotify-token", "");
         if (token.empty()) { callback(false); return; }
@@ -216,7 +216,7 @@ void PlaybackManager::isPlaybackActive(std::function<void(bool)> callback) {
 
 bool PlaybackManager::control(bool play) {
     if (!isWindows()) {
-        if (!Mod::get()->getSavedValue<bool>("hasAuthorized")) return false;
+        if (!Mod::get()->getSavedValue<bool>("hasAuthorizedAndroid")) return false;
 
         std::string token = Mod::get()->getSavedValue<std::string>("spotify-token", "");
         if (token.empty()) { return false; }
@@ -235,7 +235,7 @@ bool PlaybackManager::control(bool play) {
 
 bool PlaybackManager::skip(bool direction) {
      if (!isWindows()) {
-        if (!Mod::get()->getSavedValue<bool>("hasAuthorized")) return false;
+        if (!Mod::get()->getSavedValue<bool>("hasAuthorizedAndroid")) return false;
 
         std::string token = Mod::get()->getSavedValue<std::string>("spotify-token", "");
         if (token.empty()) { return false; }
@@ -255,7 +255,7 @@ bool PlaybackManager::skip(bool direction) {
 
 bool PlaybackManager::toggleControl() {
     if (!isWindows()) {
-        if (!Mod::get()->getSavedValue<bool>("hasAuthorized")) return false;
+        if (!Mod::get()->getSavedValue<bool>("hasAuthorizedAndroid")) return false;
 
         std::string token = Mod::get()->getSavedValue<std::string>("spotify-token", "");
         if (token.empty()) { return false; }
@@ -418,7 +418,7 @@ bool PlaybackManager::spotifyHandleRateLimit(web::WebResponse const& value) {
 
 void PlaybackManager::pollSpotify(bool force) {
     if (!force && !m_spotifyPolling) return;
-    if (isWindows() || !Mod::get()->getSavedValue<bool>("hasAuthorized")) return;
+    if (isWindows() || !Mod::get()->getSavedValue<bool>("hasAuthorizedAndroid")) return;
     if (!spotifyCanRequest(true)) return;
 
     auto now = std::chrono::steady_clock::now();
@@ -487,7 +487,7 @@ void PlaybackManager::spotifyControlRequest(std::string token, int retryCount, b
                 return;
             }
             
-            if (code == 500) { Mod::get()->setSavedValue<bool>("hasAuthorized", false); return; }
+            if (code == 500) { Mod::get()->setSavedValue<bool>("hasAuthorizedAndroid", false); return; }
             if (code == 404) { log::debug("No active device"); return; }
             
             if (value.ok()) {
@@ -529,7 +529,7 @@ void PlaybackManager::spotifyisPlaybackActive(std::string token, std::function<v
                 return;
             }
             
-            if (code == 500) { Mod::get()->setSavedValue<bool>("hasAuthorized", false); return; }
+            if (code == 500) { Mod::get()->setSavedValue<bool>("hasAuthorizedAndroid", false); return; }
             if (code == 204) { log::debug("No active device"); return; }
             
             if (value.ok()) {
@@ -591,7 +591,7 @@ void PlaybackManager::spotifySkipRequest(std::string token, int retryCount, bool
                 return;
             }
             
-            if (code == 500) { Mod::get()->setSavedValue<bool>("hasAuthorized", false); return; }
+            if (code == 500) { Mod::get()->setSavedValue<bool>("hasAuthorizedAndroid", false); return; }
             if (code == 404) { log::debug("No active device"); return; }
             
             if (value.ok()) {
@@ -632,7 +632,7 @@ void PlaybackManager::spotifyGetPlaybackInfo(std::string token, int retryCount) 
                 return;
             }
             
-            if (code == 500) { Mod::get()->setSavedValue<bool>("hasAuthorized", false); return; }
+            if (code == 500) { Mod::get()->setSavedValue<bool>("hasAuthorizedAndroid", false); return; }
             if (code == 204) { log::debug("No active device"); return; }
             
             if (!value.ok()) {
