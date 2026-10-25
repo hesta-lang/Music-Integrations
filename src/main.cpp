@@ -190,33 +190,40 @@ class $modify(MusicIntegrationsCCScene, CCScene) {
     void onEnter() {
         CCScene::onEnter();
 
-        // Put the floating toggle on Geode's overlay layer so it stays above
-        // the game's scene content, like other mod-menu buttons.
-        CCNode* host = OverlayManager::get();
-        if (!host) host = this;
-        if (host->getChildByID("music-integrations-floating-toggle")) return;
+        // Add the touch toggle directly to the active scene. This avoids relying
+        // on OverlayManager's coordinate space or lifetime on Android.
+        if (this->getChildByID("music-integrations-floating-toggle")) return;
 
-        auto icon = CCSprite::createWithSpriteFrameName("GJ_optionsBtn02_001.png");
-        if (!icon) icon = CCSprite::create("GJ_optionsBtn02_001.png");
-        if (!icon) return;
+        auto label = CCLabelBMFont::create("MUSIC", "bigFont.fnt");
+        if (!label) {
+            log::error("Music Integrations: couldn't create floating button label");
+            return;
+        }
 
-        auto button = CCMenuItemSpriteExtra::create(
-            icon,
+        auto button = CCMenuItemLabel::create(
+            label,
             this,
             menu_selector(MusicIntegrationsCCScene::onToggleMusicOverlay)
         );
-        if (!button) return;
+        if (!button) {
+            log::error("Music Integrations: couldn't create floating button");
+            return;
+        }
 
         auto menu = CCMenu::createWithItem(button);
-        if (!menu) return;
+        if (!menu) {
+            log::error("Music Integrations: couldn't create floating button menu");
+            return;
+        }
+
         menu->setID("music-integrations-floating-toggle");
         menu->setPosition({0.f, 0.f});
-
         auto winSize = CCDirector::sharedDirector()->getWinSize();
-        button->setPosition({35.f, winSize.height * 0.62f});
-        button->setScale(0.75f);
+        button->setPosition({48.f, winSize.height * 0.62f});
+        button->setScale(0.65f);
         menu->setZOrder(100000);
-        host->addChild(menu);
+        this->addChild(menu, 100000);
+        log::info("Music Integrations: floating button added to active scene");
     }
 
     int getHighestChildZ() {
