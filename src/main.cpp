@@ -181,7 +181,6 @@ class $modify(FMODAudioEngine) {
 };
 
 class $modify(MusicIntegrationsCCScene, CCScene) {
-    // Declare the callback before onEnter uses menu_selector.
     void onToggleMusicOverlay(CCObject*) {
         g_musicOverlayVisible = !g_musicOverlayVisible;
         auto overlay = MusicControlOverlay::get();
@@ -191,37 +190,47 @@ class $modify(MusicIntegrationsCCScene, CCScene) {
     void onEnter() {
         CCScene::onEnter();
 
-        // Android-friendly touch button to show/hide the music controls.
-        if (!this->getChildByID("music-integrations-touch-toggle")) {
-            auto label = CCLabelBMFont::create("MUSIC", "bigFont.fnt");
-            if (label) {
-                label->setScale(0.35f);
-                auto button = CCMenuItemSpriteExtra::create(
-                    label,
-                    this,
-                    menu_selector(MusicIntegrationsCCScene::onToggleMusicOverlay)
-                );
-                if (button) {
-                    auto menu = CCMenu::createWithItem(button);
-                    menu->setID("music-integrations-touch-toggle");
-                    menu->setPosition({0.f, 0.f});
-                    button->setPosition({45.f, 45.f});
-                    menu->setZOrder(10000);
-                    this->addChild(menu);
-                }
-            }
+        // Put the floating toggle on Geode's overlay layer so it stays above
+        // the game's scene content, like other mod-menu buttons.
+        auto host = OverlayManager::get();
+        if (!host) host = this;
+        if (host->getChildByID("music-integrations-floating-toggle")) return;
+
+        auto icon = CCSprite::createWithSpriteFrameName("GJ_optionsBtn02_001.png");
+        if (!icon) {
+            auto label = CCLabelBMFont::create("M", "bigFont.fnt");
+            if (!label) return;
+            label->setScale(0.8f);
+            icon = label;
         }
+
+        auto button = CCMenuItemSpriteExtra::create(
+            icon,
+            this,
+            menu_selector(MusicIntegrationsCCScene::onToggleMusicOverlay)
+        );
+        if (!button) return;
+
+        auto menu = CCMenu::createWithItem(button);
+        if (!menu) return;
+        menu->setID("music-integrations-floating-toggle");
+        menu->setPosition({0.f, 0.f});
+
+        auto winSize = CCDirector::sharedDirector()->getWinSize();
+        button->setPosition({35.f, winSize.height * 0.62f});
+        button->setScale(0.75f);
+        menu->setZOrder(100000);
+        host->addChild(menu);
     }
 
     int getHighestChildZ() {
-        if(auto mco = CCScene::get()->getChildByType<MusicControlOverlay>(0)) {
+        if (auto mco = CCScene::get()->getChildByType<MusicControlOverlay>(0)) {
             mco->setZOrder(0);
             int result = CCScene::getHighestChildZ();
             result > 130 ? mco->setZOrder(result) : mco->setZOrder(130);
             return result;
-        } else {
-            return CCScene::getHighestChildZ();
         }
+        return CCScene::getHighestChildZ();
     }
 };
 
