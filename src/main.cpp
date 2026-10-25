@@ -181,6 +181,13 @@ class $modify(FMODAudioEngine) {
 };
 
 class $modify(CCScene) {
+    // Declare the callback before onEnter uses menu_selector.
+    void onToggleMusicOverlay(CCObject*) {
+        g_musicOverlayVisible = !g_musicOverlayVisible;
+        auto overlay = MusicControlOverlay::get();
+        if (overlay) overlay->updateValues(g_musicOverlayVisible);
+    }
+
     void onEnter() {
         CCScene::onEnter();
 
@@ -204,12 +211,6 @@ class $modify(CCScene) {
                 }
             }
         }
-    }
-
-    void onToggleMusicOverlay(CCObject*) {
-        g_musicOverlayVisible = !g_musicOverlayVisible;
-        auto overlay = MusicControlOverlay::get();
-        if (overlay) overlay->updateValues(g_musicOverlayVisible);
     }
 
     int getHighestChildZ() {
