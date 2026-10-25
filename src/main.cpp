@@ -186,6 +186,7 @@ class $modify(FMODAudioEngine) {
 class DraggableMusicToggle : public CCLayer {
 protected:
     CCSprite* m_background = nullptr;
+    CCSprite* m_icon = nullptr;
     CCLabelBMFont* m_label = nullptr;
     CCPoint m_touchStart = CCPointZero;
     CCPoint m_startPosition = CCPointZero;
@@ -210,32 +211,38 @@ public:
         this->setContentSize(size);
         this->setTouchEnabled(true);
 
-        // Use Geometry Dash's native button artwork so it fits the game's UI.
+        // Use the familiar Geometry Dash green button with a music icon and
+        // the game's own bitmap font, rather than a flat cyan rectangle.
         m_background = CCSprite::createWithSpriteFrameName("GJ_button_01.png");
+        if (!m_background) m_background = CCSprite::create("GJ_button_01.png");
         if (!m_background) {
-            m_background = CCSprite::create("GJ_button_01.png");
-        }
-        if (!m_background) {
-            log::error("Music Integrations: could not load button background");
+            log::error("Music Integrations: could not load Geometry Dash button artwork");
             return false;
         }
 
-        m_background->setScale(1.25f);
-        m_background->setColor({30, 190, 220});
-        m_background->setOpacity(235);
-        m_background->setPosition({48.f, size.height * 0.62f});
+        m_background->setScale(1.05f);
+        m_background->setColor({110, 235, 95});
+        m_background->setOpacity(255);
+        m_background->setPosition({54.f, size.height * 0.62f});
         this->addChild(m_background, 0);
+
+        m_icon = CCSprite::createWithSpriteFrameName("GJ_musicOnBtn_001.png");
+        if (m_icon) {
+            m_icon->setScale(0.48f);
+            m_icon->setPosition({-m_background->getContentSize().width * 0.23f, 0.f});
+            m_background->addChild(m_icon, 1);
+        }
 
         m_label = CCLabelBMFont::create("MUSIC", "bigFont.fnt");
         if (!m_label) {
-            log::error("Music Integrations: failed to create draggable MUSIC label");
+            log::error("Music Integrations: failed to create MUSIC label");
             return false;
         }
-
-        m_label->setScale(0.48f);
+        m_label->setScale(0.42f);
         m_label->setAnchorPoint({0.5f, 0.5f});
-        m_label->setPosition(m_background->getPosition());
-        this->addChild(m_label, 1);
+        // Put the title inside the button, to the right of the optional icon.
+        m_label->setPosition({m_background->getContentSize().width * 0.13f, 0.f});
+        m_background->addChild(m_label, 2);
         return true;
     }
 
@@ -244,15 +251,13 @@ public:
     }
 
     bool ccTouchBegan(CCTouch* touch, CCEvent* event) override {
-        if (!m_background || !m_label || !touch) return false;
-
+        if (!m_background || !touch) return false;
         auto point = this->convertToNodeSpace(touch->getLocation());
         auto bounds = m_background->boundingBox();
-        // Expand the touch area for easier dragging on a phone.
-        bounds.origin.x -= 12.f;
-        bounds.origin.y -= 12.f;
-        bounds.size.width += 24.f;
-        bounds.size.height += 24.f;
+        bounds.origin.x -= 14.f;
+        bounds.origin.y -= 14.f;
+        bounds.size.width += 28.f;
+        bounds.size.height += 28.f;
         if (!bounds.containsPoint(point)) return false;
 
         m_touchingButton = true;
@@ -263,8 +268,7 @@ public:
     }
 
     void ccTouchMoved(CCTouch* touch, CCEvent* event) override {
-        if (!m_touchingButton || !m_background || !m_label || !touch) return;
-
+        if (!m_touchingButton || !m_background || !touch) return;
         auto point = this->convertToNodeSpace(touch->getLocation());
         float dx = point.x - m_touchStart.x;
         float dy = point.y - m_touchStart.y;
@@ -277,16 +281,12 @@ public:
         float halfHeight = bounds.size.height * 0.5f;
         float x = std::clamp(m_startPosition.x + dx, halfWidth, size.width - halfWidth);
         float y = std::clamp(m_startPosition.y + dy, halfHeight, size.height - halfHeight);
-        CCPoint newPosition{x, y};
-        m_background->setPosition(newPosition);
-        m_label->setPosition(newPosition);
+        m_background->setPosition({x, y});
     }
 
     void ccTouchEnded(CCTouch* touch, CCEvent* event) override {
         if (!m_touchingButton) return;
         m_touchingButton = false;
-
-        // A tap toggles the controls; a drag only changes the button position.
         if (!m_dragged) {
             g_musicOverlayVisible = !g_musicOverlayVisible;
             auto overlay = MusicControlOverlay::get();
