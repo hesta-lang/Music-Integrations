@@ -64,9 +64,9 @@ protected:
 		this->addChildAtPosition(m_bg, Anchor::Center);
 
         #ifdef GEODE_IS_WINDOWS
-        if(pbm.m_mediaManager || Mod::get()->getSavedValue<bool>("hasAuthorized")) {
+        if(pbm.m_mediaManager || Mod::get()->getSavedValue<bool>("hasAuthorizedAndroid")) {
         #else
-        if(Mod::get()->getSavedValue<bool>("hasAuthorized")) {
+        if(Mod::get()->getSavedValue<bool>("hasAuthorizedAndroid")) {
         #endif
             m_musicTitle = createMusicLabel("No Song");
             m_musicTitle->setLimitLabelWidth(300.f, 1.5f, 0.1f);
@@ -299,7 +299,7 @@ protected:
         m_playbackListener = PlaybackManager::PlaybackUpdateEvent("playback-update"_spr).listen([this](bool status) {
             togglePlaybackBtn(status);
         });
-        if(Mod::get()->getSavedValue<bool>("hasAuthorized") && !pbm.isWindows()) {
+        if(Mod::get()->getSavedValue<bool>("hasAuthorizedAndroid") && !pbm.isWindows()) {
             pbm.pollSpotify(true);
 
             if (m_pollingTask.isValid()) m_pollingTask.abort();
@@ -362,7 +362,7 @@ public:
 
         }
         #endif
-        if (Mod::get()->getSavedValue<bool>("hasAuthorized") && !pbm.isWindows()) {
+        if (Mod::get()->getSavedValue<bool>("hasAuthorizedAndroid") && !pbm.isWindows()) {
             pbm.m_spotifyPolling = show;
             if (show) {
                 pbm.resumeSpotify();
