@@ -29,6 +29,8 @@ protected:
     std::chrono::seconds DEFAULT_RETRY_AFTER = std::chrono::seconds(30);
     int m_spotifyErrorCount = 0;
     bool m_spotifyStopped = false;
+    // Spotify explicitly rejects player commands for non-Premium accounts.
+    bool m_spotifyPremiumRequired = false;
     std::chrono::steady_clock::time_point m_lastPoll{};
     std::chrono::steady_clock::time_point m_retryAfter{};
 

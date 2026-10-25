@@ -218,6 +218,11 @@ bool PlaybackManager::control(bool play) {
     if (!isWindows()) {
         if (!Mod::get()->getSavedValue<bool>("hasAuthorizedAndroid")) return false;
 
+        if (m_spotifyPremiumRequired) {
+            log::debug("Spotify playback controls require Premium; request skipped.");
+            return false;
+        }
+
         std::string token = Mod::get()->getSavedValue<std::string>("spotify-token", "");
         if (token.empty()) { return false; }
         PlaybackManager::get().spotifyControlRequest(token, 0, play);
@@ -236,6 +241,11 @@ bool PlaybackManager::control(bool play) {
 bool PlaybackManager::skip(bool direction) {
      if (!isWindows()) {
         if (!Mod::get()->getSavedValue<bool>("hasAuthorizedAndroid")) return false;
+
+        if (m_spotifyPremiumRequired) {
+            log::debug("Spotify playback controls require Premium; request skipped.");
+            return false;
+        }
 
         std::string token = Mod::get()->getSavedValue<std::string>("spotify-token", "");
         if (token.empty()) { return false; }
@@ -256,6 +266,11 @@ bool PlaybackManager::skip(bool direction) {
 bool PlaybackManager::toggleControl() {
     if (!isWindows()) {
         if (!Mod::get()->getSavedValue<bool>("hasAuthorizedAndroid")) return false;
+
+        if (m_spotifyPremiumRequired) {
+            log::debug("Spotify playback controls require Premium; request skipped.");
+            return false;
+        }
 
         std::string token = Mod::get()->getSavedValue<std::string>("spotify-token", "");
         if (token.empty()) { return false; }
@@ -477,6 +492,12 @@ void PlaybackManager::spotifyControlRequest(std::string token, int retryCount, b
 
             if (spotifyHandleRateLimit(value)) return;
 
+            if (code == 403 && value.string().find("PREMIUM_REQUIRED") != std::string::npos) {
+                m_spotifyPremiumRequired = true;
+                log::warn("Spotify rejected playback control: Premium is required. Further playback-control requests are disabled for this session.");
+                return;
+            }
+
             if (code == 401) {
                 spotifyOnError("Unauthorized");
                 log::debug("Token expired, refreshing... (attempt {})", retryCount + 1);
@@ -580,6 +601,12 @@ void PlaybackManager::spotifySkipRequest(std::string token, int retryCount, bool
             auto code = value.code();
             
             if (spotifyHandleRateLimit(value)) return;
+
+            if (code == 403 && value.string().find("PREMIUM_REQUIRED") != std::string::npos) {
+                m_spotifyPremiumRequired = true;
+                log::warn("Spotify rejected playback control: Premium is required. Further playback-control requests are disabled for this session.");
+                return;
+            }
 
             if (code == 401) {
                 spotifyOnError("Unauthorized");
