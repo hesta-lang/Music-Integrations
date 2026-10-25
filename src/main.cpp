@@ -180,60 +180,44 @@ class $modify(FMODAudioEngine) {
     }
 };
 
-class $modify(MusicIntegrationsCCScene, CCScene) {
+class $modify(MusicIntegrationsCCDirector, CCDirector) {
     void onToggleMusicOverlay(CCObject*) {
         g_musicOverlayVisible = !g_musicOverlayVisible;
         auto overlay = MusicControlOverlay::get();
         if (overlay) overlay->updateValues(g_musicOverlayVisible);
     }
 
-    void onEnter() {
-        CCScene::onEnter();
-
-        // Add the touch toggle directly to the active scene. This avoids relying
-        // on OverlayManager's coordinate space or lifetime on Android.
-        if (this->getChildByID("music-integrations-floating-toggle")) return;
-
-        auto label = CCLabelBMFont::create("MUSIC", "bigFont.fnt");
-        if (!label) {
-            log::error("Music Integrations: couldn't create floating button label");
-            return;
+    void drawScene() {
+        // Ensure the control is attached to the actual running scene, not an
+        // intermediate scene that may be replaced during a transition.
+        auto scene = this->getRunningScene();
+        if (scene && !scene->getChildByID("music-integrations-floating-toggle")) {
+            auto label = CCLabelBMFont::create("MUSIC", "bigFont.fnt");
+            if (label) {
+                auto button = CCMenuItemLabel::create(
+                    label,
+                    this,
+                    menu_selector(MusicIntegrationsCCDirector::onToggleMusicOverlay)
+                );
+                if (button) {
+                    auto menu = CCMenu::createWithItem(button);
+                    if (menu) {
+                        menu->setID("music-integrations-floating-toggle");
+                        menu->setPosition({0.f, 0.f});
+                        auto winSize = this->getWinSize();
+                        button->setPosition({48.f, winSize.height * 0.62f});
+                        button->setScale(0.65f);
+                        menu->setZOrder(100000);
+                        scene->addChild(menu, 100000);
+                        log::info("Music Integrations: attached floating MUSIC button to running scene");
+                    }
+                }
+            } else {
+                log::error("Music Integrations: failed to create MUSIC label");
+            }
         }
 
-        auto button = CCMenuItemLabel::create(
-            label,
-            this,
-            menu_selector(MusicIntegrationsCCScene::onToggleMusicOverlay)
-        );
-        if (!button) {
-            log::error("Music Integrations: couldn't create floating button");
-            return;
-        }
-
-        auto menu = CCMenu::createWithItem(button);
-        if (!menu) {
-            log::error("Music Integrations: couldn't create floating button menu");
-            return;
-        }
-
-        menu->setID("music-integrations-floating-toggle");
-        menu->setPosition({0.f, 0.f});
-        auto winSize = CCDirector::sharedDirector()->getWinSize();
-        button->setPosition({48.f, winSize.height * 0.62f});
-        button->setScale(0.65f);
-        menu->setZOrder(100000);
-        this->addChild(menu, 100000);
-        log::info("Music Integrations: floating button added to active scene");
-    }
-
-    int getHighestChildZ() {
-        if (auto mco = CCScene::get()->getChildByType<MusicControlOverlay>(0)) {
-            mco->setZOrder(0);
-            int result = CCScene::getHighestChildZ();
-            result > 130 ? mco->setZOrder(result) : mco->setZOrder(130);
-            return result;
-        }
-        return CCScene::getHighestChildZ();
+        CCDirector::drawScene();
     }
 };
 
