@@ -192,17 +192,13 @@ class $modify(MusicIntegrationsCCScene, CCScene) {
 
         // Put the floating toggle on Geode's overlay layer so it stays above
         // the game's scene content, like other mod-menu buttons.
-        auto host = OverlayManager::get();
+        CCNode* host = OverlayManager::get();
         if (!host) host = this;
         if (host->getChildByID("music-integrations-floating-toggle")) return;
 
         auto icon = CCSprite::createWithSpriteFrameName("GJ_optionsBtn02_001.png");
-        if (!icon) {
-            auto label = CCLabelBMFont::create("M", "bigFont.fnt");
-            if (!label) return;
-            label->setScale(0.8f);
-            icon = label;
-        }
+        if (!icon) icon = CCSprite::create("GJ_optionsBtn02_001.png");
+        if (!icon) return;
 
         auto button = CCMenuItemSpriteExtra::create(
             icon,
