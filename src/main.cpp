@@ -67,7 +67,9 @@ $on_mod(Loaded) {
         if (Mod::get()->getSavedValue<bool>("hasAuthorized") == false && PlaybackManager::get().isWindows() == false) {
             createQuickPopup("Link Spotify", "Please link your Spotify account to use Music Integrations <cc>(You will have 2 minutes to authenticate)</c>", "Close", "Link Spotify",
                 [](auto, bool btn2) {
+                    log::info("Spotify authorization popup response: {}", btn2 ? "Link Spotify" : "Close");
                     if (!btn2) return;
+                    log::info("Starting Spotify authorization server");
                     SpotifyAuth::get()->start([](std::string code) {
                         auto req = web::WebRequest();
 
@@ -107,7 +109,8 @@ $on_mod(Loaded) {
                             }
                         );
                     });
-                    web::openLinkInBrowser("https://accounts.spotify.com/authorize?client_id=7314a0ab3c734b2caa4b483032cdd91f&response_type=code&redirect_uri=http://127.0.0.1:21851/&scope=user-read-playback-state user-modify-playback-state");
+                    log::info("Opening Spotify authorization page");
+                    web::openLinkInBrowser("https://accounts.spotify.com/authorize?client_id=7314a0ab3c734b2caa4b483032cdd91f&response_type=code&redirect_uri=http%3A%2F%2F127.0.0.1%3A21851%2F&scope=user-read-playback-state%20user-modify-playback-state");
                 }
             );
         }
