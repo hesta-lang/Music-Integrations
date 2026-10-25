@@ -25,6 +25,7 @@
 #define WINRT_CPPWINRT
 
 bool m_rebindWindowOpen = false;
+bool g_musicOverlayVisible = false;
 async::TaskHolder<web::WebResponse> m_listener;
 
 $on_mod(Loaded) {
@@ -57,8 +58,10 @@ $on_mod(Loaded) {
         auto overlay = MusicControlOverlay::get();
         if (!overlay) return;
         if (down && !repeat) {
+            g_musicOverlayVisible = true;
             overlay->updateValues(true);
         } else if (!down) {
+            g_musicOverlayVisible = false;
             overlay->updateValues(false);
         }
     });
@@ -178,6 +181,37 @@ class $modify(FMODAudioEngine) {
 };
 
 class $modify(CCScene) {
+    void onEnter() {
+        CCScene::onEnter();
+
+        // Android-friendly touch button to show/hide the music controls.
+        if (!this->getChildByID("music-integrations-touch-toggle")) {
+            auto label = CCLabelBMFont::create("MUSIC", "bigFont.fnt");
+            if (label) {
+                label->setScale(0.35f);
+                auto button = CCMenuItemSpriteExtra::create(
+                    label,
+                    this,
+                    menu_selector(CCScene::onToggleMusicOverlay)
+                );
+                if (button) {
+                    auto menu = CCMenu::createWithItem(button);
+                    menu->setID("music-integrations-touch-toggle");
+                    menu->setPosition({0.f, 0.f});
+                    button->setPosition({45.f, 45.f});
+                    menu->setZOrder(10000);
+                    this->addChild(menu);
+                }
+            }
+        }
+    }
+
+    void onToggleMusicOverlay(CCObject*) {
+        g_musicOverlayVisible = !g_musicOverlayVisible;
+        auto overlay = MusicControlOverlay::get();
+        if (overlay) overlay->updateValues(g_musicOverlayVisible);
+    }
+
     int getHighestChildZ() {
         if(auto mco = CCScene::get()->getChildByType<MusicControlOverlay>(0)) {
             mco->setZOrder(0);
