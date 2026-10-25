@@ -12,6 +12,7 @@
 #include <Geode/modify/CustomSongWidget.hpp>
 #include <Geode/modify/EditorUI.hpp>
 #include <Geode/modify/PauseLayer.hpp>
+#include <Geode/modify/MenuLayer.hpp>
 #include <Geode/modify/CCDirector.hpp>
 
 #include "managers/MusicOverlayManager.cpp"
@@ -211,38 +212,16 @@ public:
         this->setContentSize(size);
         this->setTouchEnabled(true);
 
-        // Use the familiar Geometry Dash green button with a music icon and
-        // the game's own bitmap font, rather than a flat cyan rectangle.
-        m_background = CCSprite::createWithSpriteFrameName("GJ_button_01.png");
-        if (!m_background) m_background = CCSprite::create("GJ_button_01.png");
+        // Use the mod's own menu artwork. Geode selects the matching
+        // -hd/-uhd resource variant for the device resolution.
+        m_background = CCSprite::create("MH_menu.png"_spr);
         if (!m_background) {
-            log::error("Music Integrations: could not load Geometry Dash button artwork");
+            log::error("Music Integrations: failed to load MH_menu.png resource");
             return false;
         }
 
-        m_background->setScale(1.05f);
-        m_background->setColor({110, 235, 95});
-        m_background->setOpacity(255);
         m_background->setPosition({54.f, size.height * 0.62f});
         this->addChild(m_background, 0);
-
-        m_icon = CCSprite::createWithSpriteFrameName("GJ_musicOnBtn_001.png");
-        if (m_icon) {
-            m_icon->setScale(0.48f);
-            m_icon->setPosition({-m_background->getContentSize().width * 0.23f, 0.f});
-            m_background->addChild(m_icon, 1);
-        }
-
-        m_label = CCLabelBMFont::create("MUSIC", "bigFont.fnt");
-        if (!m_label) {
-            log::error("Music Integrations: failed to create MUSIC label");
-            return false;
-        }
-        m_label->setScale(0.42f);
-        m_label->setAnchorPoint({0.5f, 0.5f});
-        // Put the title inside the button, to the right of the optional icon.
-        m_label->setPosition({m_background->getContentSize().width * 0.13f, 0.f});
-        m_background->addChild(m_label, 2);
         return true;
     }
 
@@ -353,5 +332,14 @@ class $modify (EditorUI) {
         } else {
             pbm.control(true);
         }
+    }
+};
+
+// Attach the custom music button to the actual Geometry Dash main menu.
+class $modify(MenuLayer) {
+    void onEnter() {
+        MenuLayer::onEnter();
+        auto toggle = DraggableMusicToggle::create();
+        if (toggle) this->addChild(toggle, 999);
     }
 };
