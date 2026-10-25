@@ -180,40 +180,112 @@ class $modify(FMODAudioEngine) {
     }
 };
 
-class $modify(MusicIntegrationsCCDirector, CCDirector) {
-    void onToggleMusicOverlay(CCObject*) {
-        g_musicOverlayVisible = !g_musicOverlayVisible;
-        auto overlay = MusicControlOverlay::get();
-        if (overlay) overlay->updateValues(g_musicOverlayVisible);
+class DraggableMusicToggle : public CCLayer {
+protected:
+    CCLabelBMFont* m_label = nullptr;
+    CCPoint m_touchStart = CCPointZero;
+    CCPoint m_startPosition = CCPointZero;
+    bool m_dragged = false;
+    bool m_touchingButton = false;
+
+public:
+    static DraggableMusicToggle* create() {
+        auto ret = new DraggableMusicToggle();
+        if (ret && ret->init()) {
+            ret->autorelease();
+            return ret;
+        }
+        CC_SAFE_DELETE(ret);
+        return nullptr;
     }
 
+    bool init() override {
+        if (!CCLayer::init()) return false;
+
+        auto size = CCDirector::sharedDirector()->getWinSize();
+        this->setContentSize(size);
+        this->setTouchEnabled(true);
+
+        m_label = CCLabelBMFont::create("MUSIC", "bigFont.fnt");
+        if (!m_label) {
+            log::error("Music Integrations: failed to create draggable MUSIC label");
+            return false;
+        }
+
+        m_label->setScale(0.65f);
+        m_label->setAnchorPoint({0.5f, 0.5f});
+        m_label->setPosition({48.f, size.height * 0.62f});
+        this->addChild(m_label, 1);
+        return true;
+    }
+
+    void registerWithTouchDispatcher() override {
+        CCTouchDispatcher::get()->addTargetedDelegate(this, kCCMenuHandlerPriority - 1, true);
+    }
+
+    bool ccTouchBegan(CCTouch* touch, CCEvent* event) override {
+        if (!m_label || !touch) return false;
+
+        auto point = this->convertToNodeSpace(touch->getLocation());
+        auto bounds = m_label->boundingBox();
+        // Give the small floating label a slightly larger touch target for Android.
+        bounds.origin.x -= 18.f;
+        bounds.origin.y -= 18.f;
+        bounds.size.width += 36.f;
+        bounds.size.height += 36.f;
+        if (!bounds.containsPoint(point)) return false;
+
+        m_touchingButton = true;
+        m_dragged = false;
+        m_touchStart = point;
+        m_startPosition = m_label->getPosition();
+        return true;
+    }
+
+    void ccTouchMoved(CCTouch* touch, CCEvent* event) override {
+        if (!m_touchingButton || !m_label || !touch) return;
+
+        auto point = this->convertToNodeSpace(touch->getLocation());
+        float dx = point.x - m_touchStart.x;
+        float dy = point.y - m_touchStart.y;
+        if (std::abs(dx) > 8.f || std::abs(dy) > 8.f) m_dragged = true;
+        if (!m_dragged) return;
+
+        auto size = this->getContentSize();
+        auto halfWidth = m_label->getContentSize().width * m_label->getScale() * 0.5f;
+        auto halfHeight = m_label->getContentSize().height * m_label->getScale() * 0.5f;
+        float x = std::clamp(m_startPosition.x + dx, halfWidth, size.width - halfWidth);
+        float y = std::clamp(m_startPosition.y + dy, halfHeight, size.height - halfHeight);
+        m_label->setPosition({x, y});
+    }
+
+    void ccTouchEnded(CCTouch* touch, CCEvent* event) override {
+        if (!m_touchingButton) return;
+        m_touchingButton = false;
+
+        // A tap toggles the controls; a drag only changes the button position.
+        if (!m_dragged) {
+            g_musicOverlayVisible = !g_musicOverlayVisible;
+            auto overlay = MusicControlOverlay::get();
+            if (overlay) overlay->updateValues(g_musicOverlayVisible);
+        }
+    }
+
+    void ccTouchCancelled(CCTouch* touch, CCEvent* event) override {
+        m_touchingButton = false;
+    }
+};
+
+class $modify(MusicIntegrationsCCDirector, CCDirector) {
     void drawScene() {
-        // Ensure the control is attached to the actual running scene, not an
-        // intermediate scene that may be replaced during a transition.
         auto scene = this->getRunningScene();
         if (scene && !scene->getChildByID("music-integrations-floating-toggle")) {
-            auto label = CCLabelBMFont::create("MUSIC", "bigFont.fnt");
-            if (label) {
-                auto button = CCMenuItemLabel::create(
-                    label,
-                    this,
-                    menu_selector(MusicIntegrationsCCDirector::onToggleMusicOverlay)
-                );
-                if (button) {
-                    auto menu = CCMenu::createWithItem(button);
-                    if (menu) {
-                        menu->setID("music-integrations-floating-toggle");
-                        menu->setPosition({0.f, 0.f});
-                        auto winSize = this->getWinSize();
-                        button->setPosition({48.f, winSize.height * 0.62f});
-                        button->setScale(0.65f);
-                        menu->setZOrder(100000);
-                        scene->addChild(menu, 100000);
-                        log::info("Music Integrations: attached floating MUSIC button to running scene");
-                    }
-                }
-            } else {
-                log::error("Music Integrations: failed to create MUSIC label");
+            auto toggle = DraggableMusicToggle::create();
+            if (toggle) {
+                toggle->setID("music-integrations-floating-toggle");
+                toggle->setZOrder(100000);
+                scene->addChild(toggle, 100000);
+                log::info("Music Integrations: attached draggable MUSIC button to running scene");
             }
         }
 
