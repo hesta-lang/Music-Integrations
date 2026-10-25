@@ -180,7 +180,7 @@ class $modify(FMODAudioEngine) {
     }
 };
 
-class $modify(CCScene) {
+class $modify(MusicIntegrationsCCScene, CCScene) {
     // Declare the callback before onEnter uses menu_selector.
     void onToggleMusicOverlay(CCObject*) {
         g_musicOverlayVisible = !g_musicOverlayVisible;
@@ -199,7 +199,7 @@ class $modify(CCScene) {
                 auto button = CCMenuItemSpriteExtra::create(
                     label,
                     this,
-                    menu_selector(CCScene::onToggleMusicOverlay)
+                    menu_selector(MusicIntegrationsCCScene::onToggleMusicOverlay)
                 );
                 if (button) {
                     auto menu = CCMenu::createWithItem(button);
