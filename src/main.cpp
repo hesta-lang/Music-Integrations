@@ -44,7 +44,7 @@ $on_mod(Loaded) {
     BitmapFont::load("font_thai.fnt"_spr);
     BitmapFont::load("font_vietnamese.fnt"_spr);
 
-    if (Mod::get()->getSavedValue<bool>("hasAuthorized") && !PlaybackManager::get().isWindows()) {
+    if (Mod::get()->getSavedValue<bool>("hasAuthorizedAndroid") && !PlaybackManager::get().isWindows()) {
         SpotifyAuth::get()->refresh([](std::string newToken) {
             log::debug("Token refreshed on load");
         });
@@ -64,7 +64,7 @@ $on_mod(Loaded) {
     });
 
     GameEvent(geode::GameEventType::Loaded).listen([] {
-        if (Mod::get()->getSavedValue<bool>("hasAuthorized") == false && PlaybackManager::get().isWindows() == false) {
+        if (Mod::get()->getSavedValue<bool>("hasAuthorizedAndroid") == false && PlaybackManager::get().isWindows() == false) {
             createQuickPopup("Link Spotify", "Please link your Spotify account to use Music Integrations <cc>(You will have 2 minutes to authenticate)</c>", "Close", "Link Spotify",
                 [](auto, bool btn2) {
                     log::info("Spotify authorization popup response: {}", btn2 ? "Link Spotify" : "Close");
@@ -105,7 +105,7 @@ $on_mod(Loaded) {
                                 Mod::get()->setSavedValue("spotify-token", token);
                                 Mod::get()->setSavedValue("spotify-refresh", refresh);
                                 log::info("Successfully saved Spotify token");
-                                Mod::get()->setSavedValue("hasAuthorized", true);
+                                Mod::get()->setSavedValue("hasAuthorizedAndroid", true);
                             }
                         );
                     });
