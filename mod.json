@@ -1,40 +1,55 @@
 {
-	"geode": "5.11.1",
-	"gd": {
-		"win": "2.2081",
-		"mac": "2.2081"
-	},
-	"id": "vinsterplays.music_integrations",
-	"name": "Music Integrations",
-	"version": "v2.1.0-beta",
-	"developer": "Vinsterplays",
-	"description": "Control YT/Spotify without tabbing out.",
-	"repository": "https://github.com/Vinsterplays/Music-Integrations",
-	"tags": ["music", "enhancement", "editor", "universal"],
-	"resources": {
-		"sprites": ["resources/*.png"],
-		"files": [
-			"resources/*.txt",
-			"resources/BitmapFonts/*.fnt",
-			"resources/BitmapFonts/*.png",
-			"resources/*.png",
-			"resources/foxy/*.png",
-			"resources/foxy/*.ogg"
-		]
-	},
-	"settings": {
-		"overlay_anchor": {
-			"type": "string",
-			"name": "Overlay Anchor",
-			"description": "The corner of the screen the overlay should be anchored to.",
-			"default": "Bottom Right",
-			"one-of": ["Top Left", "Top Right", "Bottom Left", "Bottom Right", "Middle Left", "Middle Right"]
-		},
-		"key_overlay": {
-			"type": "keybind",
-			"name": "Overlay Keybind",
-			"description": "The keybind to open the overlay.",
-			"default": "`"
-		}
-	}
+  "geode": "5.11.1",
+  "gd": {
+    "win": "2.2081",
+    "mac": "2.2081",
+    "android": "2.2081"
+  },
+  "id": "vinsterplays.music_integrations",
+  "name": "Music Integrations",
+  "version": "v2.1.0-android.1",
+  "developer": "Vinsterplays",
+  "description": "Control Spotify from Geometry Dash on Android, Windows, and macOS.",
+  "repository": "https://github.com/Vinsterplays/Music-Integrations",
+  "tags": [
+    "music",
+    "enhancement",
+    "editor",
+    "universal"
+  ],
+  "resources": {
+    "sprites": [
+      "resources/*.png"
+    ],
+    "files": [
+      "resources/*.txt",
+      "resources/BitmapFonts/*.fnt",
+      "resources/BitmapFonts/*.png",
+      "resources/*.png",
+      "resources/foxy/*.png",
+      "resources/foxy/*.ogg"
+    ]
+  },
+  "settings": {
+    "overlay_anchor": {
+      "type": "string",
+      "name": "Overlay Anchor",
+      "description": "The corner of the screen the overlay should be anchored to.",
+      "default": "Bottom Right",
+      "one-of": [
+        "Top Left",
+        "Top Right",
+        "Bottom Left",
+        "Bottom Right",
+        "Middle Left",
+        "Middle Right"
+      ]
+    },
+    "key_overlay": {
+      "type": "keybind",
+      "name": "Overlay Keybind",
+      "description": "The keybind to open the overlay.",
+      "default": "`"
+    }
+  }
 }
