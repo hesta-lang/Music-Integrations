@@ -185,6 +185,7 @@ class $modify(FMODAudioEngine) {
 
 class DraggableMusicToggle : public CCLayer {
 protected:
+    CCSprite* m_background = nullptr;
     CCLabelBMFont* m_label = nullptr;
     CCPoint m_touchStart = CCPointZero;
     CCPoint m_startPosition = CCPointZero;
@@ -209,15 +210,31 @@ public:
         this->setContentSize(size);
         this->setTouchEnabled(true);
 
+        // Use Geometry Dash's native button artwork so it fits the game's UI.
+        m_background = CCSprite::createWithSpriteFrameName("GJ_button_01.png");
+        if (!m_background) {
+            m_background = CCSprite::create("GJ_button_01.png");
+        }
+        if (!m_background) {
+            log::error("Music Integrations: could not load button background");
+            return false;
+        }
+
+        m_background->setScale(1.25f);
+        m_background->setColor({30, 190, 220});
+        m_background->setOpacity(235);
+        m_background->setPosition({48.f, size.height * 0.62f});
+        this->addChild(m_background, 0);
+
         m_label = CCLabelBMFont::create("MUSIC", "bigFont.fnt");
         if (!m_label) {
             log::error("Music Integrations: failed to create draggable MUSIC label");
             return false;
         }
 
-        m_label->setScale(0.65f);
+        m_label->setScale(0.48f);
         m_label->setAnchorPoint({0.5f, 0.5f});
-        m_label->setPosition({48.f, size.height * 0.62f});
+        m_label->setPosition(m_background->getPosition());
         this->addChild(m_label, 1);
         return true;
     }
@@ -227,26 +244,26 @@ public:
     }
 
     bool ccTouchBegan(CCTouch* touch, CCEvent* event) override {
-        if (!m_label || !touch) return false;
+        if (!m_background || !m_label || !touch) return false;
 
         auto point = this->convertToNodeSpace(touch->getLocation());
-        auto bounds = m_label->boundingBox();
-        // Give the small floating label a slightly larger touch target for Android.
-        bounds.origin.x -= 18.f;
-        bounds.origin.y -= 18.f;
-        bounds.size.width += 36.f;
-        bounds.size.height += 36.f;
+        auto bounds = m_background->boundingBox();
+        // Expand the touch area for easier dragging on a phone.
+        bounds.origin.x -= 12.f;
+        bounds.origin.y -= 12.f;
+        bounds.size.width += 24.f;
+        bounds.size.height += 24.f;
         if (!bounds.containsPoint(point)) return false;
 
         m_touchingButton = true;
         m_dragged = false;
         m_touchStart = point;
-        m_startPosition = m_label->getPosition();
+        m_startPosition = m_background->getPosition();
         return true;
     }
 
     void ccTouchMoved(CCTouch* touch, CCEvent* event) override {
-        if (!m_touchingButton || !m_label || !touch) return;
+        if (!m_touchingButton || !m_background || !m_label || !touch) return;
 
         auto point = this->convertToNodeSpace(touch->getLocation());
         float dx = point.x - m_touchStart.x;
@@ -255,11 +272,14 @@ public:
         if (!m_dragged) return;
 
         auto size = this->getContentSize();
-        auto halfWidth = m_label->getContentSize().width * m_label->getScale() * 0.5f;
-        auto halfHeight = m_label->getContentSize().height * m_label->getScale() * 0.5f;
+        auto bounds = m_background->boundingBox();
+        float halfWidth = bounds.size.width * 0.5f;
+        float halfHeight = bounds.size.height * 0.5f;
         float x = std::clamp(m_startPosition.x + dx, halfWidth, size.width - halfWidth);
         float y = std::clamp(m_startPosition.y + dy, halfHeight, size.height - halfHeight);
-        m_label->setPosition({x, y});
+        CCPoint newPosition{x, y};
+        m_background->setPosition(newPosition);
+        m_label->setPosition(newPosition);
     }
 
     void ccTouchEnded(CCTouch* touch, CCEvent* event) override {
@@ -276,23 +296,6 @@ public:
 
     void ccTouchCancelled(CCTouch* touch, CCEvent* event) override {
         m_touchingButton = false;
-    }
-};
-
-class $modify(MusicIntegrationsCCDirector, CCDirector) {
-    void drawScene() {
-        auto scene = this->getRunningScene();
-        if (scene && !scene->getChildByID("music-integrations-floating-toggle")) {
-            auto toggle = DraggableMusicToggle::create();
-            if (toggle) {
-                toggle->setID("music-integrations-floating-toggle");
-                toggle->setZOrder(100000);
-                scene->addChild(toggle, 100000);
-                log::info("Music Integrations: attached draggable MUSIC button to running scene");
-            }
-        }
-
-        CCDirector::drawScene();
     }
 };
 
