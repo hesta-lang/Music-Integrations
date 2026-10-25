@@ -492,7 +492,7 @@ void PlaybackManager::spotifyControlRequest(std::string token, int retryCount, b
 
             if (spotifyHandleRateLimit(value)) return;
 
-            if (code == 403 && value.string().find("PREMIUM_REQUIRED") != std::string::npos) {
+            if (code == 403 && value.string().unwrapOr("").find("PREMIUM_REQUIRED") != std::string::npos) {
                 m_spotifyPremiumRequired = true;
                 log::warn("Spotify rejected playback control: Premium is required. Further playback-control requests are disabled for this session.");
                 return;
@@ -602,7 +602,7 @@ void PlaybackManager::spotifySkipRequest(std::string token, int retryCount, bool
             
             if (spotifyHandleRateLimit(value)) return;
 
-            if (code == 403 && value.string().find("PREMIUM_REQUIRED") != std::string::npos) {
+            if (code == 403 && value.string().unwrapOr("").find("PREMIUM_REQUIRED") != std::string::npos) {
                 m_spotifyPremiumRequired = true;
                 log::warn("Spotify rejected playback control: Premium is required. Further playback-control requests are disabled for this session.");
                 return;
