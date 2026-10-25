@@ -1,5 +1,8 @@
 #include "Geode/loader/GameEvent.hpp"
 #include <Geode/Geode.hpp>
+#include <algorithm>
+#include <cmath>
+#include <Geode/cocos/touch_dispatcher/CCTouchDispatcher.h>
 #include <Geode/modify/FMODAudioEngine.hpp>
 #include <Geode/modify/LevelEditorLayer.hpp>
 #include <Geode/modify/PlayLayer.hpp>
