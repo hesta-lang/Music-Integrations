@@ -7,7 +7,7 @@
   },
   "id": "vinsterplays.music_integrations",
   "name": "Music Integrations",
-  "version": "v2.1.0-android.1",
+  "version": "2.1.0",
   "developer": "Vinsterplays",
   "description": "Control Spotify from Geometry Dash on Android, Windows, and macOS.",
   "repository": "https://github.com/Vinsterplays/Music-Integrations",
