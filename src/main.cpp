@@ -335,11 +335,20 @@ class $modify (EditorUI) {
     }
 };
 
-// Attach the custom music button to the actual Geometry Dash main menu.
+// Attach the custom music button during main-menu initialization.
+// init() is more reliable here than relying on an inherited onEnter hook.
 class $modify(MenuLayer) {
-    void onEnter() {
-        MenuLayer::onEnter();
+    bool init() {
+        if (!MenuLayer::init()) return false;
+
         auto toggle = DraggableMusicToggle::create();
-        if (toggle) this->addChild(toggle, 999);
+        if (toggle) {
+            toggle->setID("music-integrations-menu-toggle");
+            this->addChild(toggle, 999);
+            log::info("Music Integrations: custom main-menu button added");
+        } else {
+            log::error("Music Integrations: failed to create main-menu button");
+        }
+        return true;
     }
 };
