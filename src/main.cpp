@@ -268,7 +268,7 @@ public:
         float y = std::clamp(m_startPosition.y + dy, halfHeight, size.height - halfHeight);
         // Keep the finger's destination as a target; update() eases the button
         // toward it over several frames for a smoother, slightly trailing feel.
-        m_targetPosition = {x, y};
+        m_targetPosition = CCPoint(x, y);
     }
 
     void update(float dt) override {
