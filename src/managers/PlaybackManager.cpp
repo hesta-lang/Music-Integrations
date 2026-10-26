@@ -3,6 +3,79 @@
 #include "MusicOverlayManager.cpp"
 #include "httpManager.hpp"
 
+#ifdef GEODE_IS_ANDROID
+#include <jni.h>
+
+// Resolve the Kotlin bridge through the current thread's class loader. This is
+// safer than relying on FindClass from a native thread in an Android process.
+static jclass getSpotifyBridgeClass(JNIEnv* env) {
+    jclass threadClass = env->FindClass("java/lang/Thread");
+    if (!threadClass) { env->ExceptionClear(); return nullptr; }
+    jmethodID currentThread = env->GetStaticMethodID(
+        threadClass, "currentThread", "()Ljava/lang/Thread;"
+    );
+    if (!currentThread) { env->ExceptionClear(); return nullptr; }
+    jobject thread = env->CallStaticObjectMethod(threadClass, currentThread);
+    jmethodID getLoader = env->GetMethodID(
+        threadClass, "getContextClassLoader", "()Ljava/lang/ClassLoader;"
+    );
+    jobject loader = getLoader ? env->CallObjectMethod(thread, getLoader) : nullptr;
+    if (env->ExceptionCheck()) { env->ExceptionClear(); }
+    if (loader) {
+        jclass loaderClass = env->FindClass("java/lang/ClassLoader");
+        jmethodID loadClass = loaderClass ? env->GetMethodID(
+            loaderClass, "loadClass", "(Ljava/lang/String;)Ljava/lang/Class;"
+        ) : nullptr;
+        jstring className = env->NewStringUTF("com.geode.launcher.SpotifyAppRemoteBridge");
+        jobject result = (loadClass && className)
+            ? env->CallObjectMethod(loader, loadClass, className) : nullptr;
+        env->DeleteLocalRef(className);
+        if (env->ExceptionCheck()) { env->ExceptionClear(); result = nullptr; }
+        if (result) return static_cast<jclass>(result);
+    }
+    jclass fallback = env->FindClass("com/geode/launcher/SpotifyAppRemoteBridge");
+    if (env->ExceptionCheck()) env->ExceptionClear();
+    return fallback;
+}
+
+static bool callSpotifyBridge(const char* methodName, bool hasArgument, jint argument) {
+    JavaVM* vm = nullptr;
+    jsize vmCount = 0;
+    if (JNI_GetCreatedJavaVMs(&vm, 1, &vmCount) != JNI_OK || vmCount == 0 || !vm) {
+        return false;
+    }
+    JNIEnv* env = nullptr;
+    bool attachedHere = false;
+    jint envResult = vm->GetEnv(reinterpret_cast<void**>(&env), JNI_VERSION_1_6);
+    if (envResult == JNI_EDETACHED) {
+        if (vm->AttachCurrentThread(&env, nullptr) != JNI_OK) return false;
+        attachedHere = true;
+    } else if (envResult != JNI_OK) {
+        return false;
+    }
+
+    bool result = false;
+    jclass bridge = getSpotifyBridgeClass(env);
+    if (bridge) {
+        const char* signature = hasArgument ? "(I)Z" : "()Z";
+        jmethodID method = env->GetStaticMethodID(bridge, methodName, signature);
+        if (method) {
+            result = hasArgument
+                ? env->CallStaticBooleanMethod(bridge, method, argument)
+                : env->CallStaticBooleanMethod(bridge, method);
+        }
+        if (env->ExceptionCheck()) {
+            env->ExceptionDescribe();
+            env->ExceptionClear();
+            result = false;
+        }
+        env->DeleteLocalRef(bridge);
+    }
+    if (attachedHere) vm->DetachCurrentThread();
+    return result;
+}
+#endif
+
 bool PlaybackManager::isWindows() {
     #ifdef GEODE_IS_WINDOWS
     static bool wine = [] -> bool {
@@ -197,9 +270,11 @@ void PlaybackManager::removeMediaManager() {
 #endif
 
 void PlaybackManager::isPlaybackActive(std::function<void(bool)> callback) {
+#ifdef GEODE_IS_ANDROID
+    callback(callSpotifyBridge("isPlaying", false, 0));
+#else
     if (!isWindows()) {
-        if (!Mod::get()->getSavedValue<bool>("hasAuthorizedAndroid")) {callback(false); return; }
-
+        if (!Mod::get()->getSavedValue<bool>("hasAuthorizedAndroid")) { callback(false); return; }
         std::string token = Mod::get()->getSavedValue<std::string>("spotify-token", "");
         if (token.empty()) { callback(false); return; }
         spotifyisPlaybackActive(token, [callback](bool isPlaying) { callback(isPlaying); });
@@ -212,19 +287,21 @@ void PlaybackManager::isPlaybackActive(std::function<void(bool)> callback) {
         callback(false);
         #endif
     }
+#endif
 }
 
 bool PlaybackManager::control(bool play) {
+#ifdef GEODE_IS_ANDROID
+    return callSpotifyBridge("requestControl", true, play ? 1 : 0);
+#else
     if (!isWindows()) {
         if (!Mod::get()->getSavedValue<bool>("hasAuthorizedAndroid")) return false;
-
         if (m_spotifyPremiumRequired) {
             log::debug("Spotify playback controls require Premium; request skipped.");
             return false;
         }
-
         std::string token = Mod::get()->getSavedValue<std::string>("spotify-token", "");
-        if (token.empty()) { return false; }
+        if (token.empty()) return false;
         PlaybackManager::get().spotifyControlRequest(token, 0, play);
         return true;
     } else {
@@ -236,23 +313,25 @@ bool PlaybackManager::control(bool play) {
         #endif
         return true;
     }
+#endif
 }
 
 bool PlaybackManager::skip(bool direction) {
-     if (!isWindows()) {
+#ifdef GEODE_IS_ANDROID
+    return callSpotifyBridge("requestControl", true, direction ? 2 : 3);
+#else
+    if (!isWindows()) {
         if (!Mod::get()->getSavedValue<bool>("hasAuthorizedAndroid")) return false;
-
         if (m_spotifyPremiumRequired) {
             log::debug("Spotify playback controls require Premium; request skipped.");
             return false;
         }
-
         std::string token = Mod::get()->getSavedValue<std::string>("spotify-token", "");
-        if (token.empty()) { return false; }
+        if (token.empty()) return false;
         if (!spotifyRegisterControl()) return false;
         PlaybackManager::get().spotifySkipRequest(token, 0, direction);
         return true;
-     } else {
+    } else {
         #ifdef GEODE_IS_WINDOWS
         if (!m_mediaManager) return false;
         auto session = m_mediaManager.GetCurrentSession();
@@ -260,24 +339,26 @@ bool PlaybackManager::skip(bool direction) {
         direction ? session.TrySkipNextAsync() : session.TrySkipPreviousAsync();
         #endif
         return true;
-     }
+    }
+#endif
 }
 
 bool PlaybackManager::toggleControl() {
+#ifdef GEODE_IS_ANDROID
+    return callSpotifyBridge("requestControl", true, callSpotifyBridge("isPlaying", false, 0) ? 0 : 1);
+#else
     if (!isWindows()) {
         if (!Mod::get()->getSavedValue<bool>("hasAuthorizedAndroid")) return false;
-
         if (m_spotifyPremiumRequired) {
             log::debug("Spotify playback controls require Premium; request skipped.");
             return false;
         }
-
         std::string token = Mod::get()->getSavedValue<std::string>("spotify-token", "");
-        if (token.empty()) { return false; }
+        if (token.empty()) return false;
         if (!spotifyRegisterControl()) return false;
         spotifyisPlaybackActive(token, [](bool isPlaying) {
             std::string token = Mod::get()->getSavedValue<std::string>("spotify-token", "");
-            if (token.empty()) return; 
+            if (token.empty()) return;
             PlaybackManager::get().spotifyControlRequest(token, 0, !isPlaying, false);
         });
         return true;
