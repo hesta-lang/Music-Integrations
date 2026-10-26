@@ -5,7 +5,7 @@
 
 #ifdef GEODE_IS_ANDROID
 #include <jni.h>
-#include <platform/android/jni/JniHelper.h>
+#include <Geode/cocos/platform/android/jni/JniHelper.h>
 
 // Resolve the Kotlin bridge through the current thread's class loader. This is
 // safer than relying on FindClass from a native thread in an Android process.
