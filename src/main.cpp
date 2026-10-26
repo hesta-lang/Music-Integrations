@@ -241,7 +241,7 @@ public:
         if (!bounds.containsPoint(point)) return false;
 
         m_touchingButton = true;
-        m_background->setOpacity(0); // Fully transparent while pressed/held.
+        m_background->setOpacity(255); // Restore normal opacity while pressed/held.
         m_dragged = false;
         m_touchStart = point;
         m_startPosition = m_background->getPosition();
