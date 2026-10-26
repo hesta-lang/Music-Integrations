@@ -10,45 +10,32 @@
 // Resolve the Kotlin bridge through the current thread's class loader. This is
 // safer than relying on FindClass from a native thread in an Android process.
 static jclass getSpotifyBridgeClass(JNIEnv* env) {
-    jclass threadClass = env->FindClass("java/lang/Thread");
-    if (!threadClass) { env->ExceptionClear(); return nullptr; }
-    jmethodID currentThread = env->GetStaticMethodID(
-        threadClass, "currentThread", "()Ljava/lang/Thread;"
+    // Use Geode/Cocos' Android class lookup helper; it handles the app class loader.
+    jclass bridge = cocos2d::JniHelper::getClassID(
+        "com/geode/launcher/SpotifyAppRemoteBridge", env
     );
-    if (!currentThread) { env->ExceptionClear(); return nullptr; }
-    jobject thread = env->CallStaticObjectMethod(threadClass, currentThread);
-    jmethodID getLoader = env->GetMethodID(
-        threadClass, "getContextClassLoader", "()Ljava/lang/ClassLoader;"
-    );
-    jobject loader = getLoader ? env->CallObjectMethod(thread, getLoader) : nullptr;
-    if (env->ExceptionCheck()) { env->ExceptionClear(); }
-    if (loader) {
-        jclass loaderClass = env->FindClass("java/lang/ClassLoader");
-        jmethodID loadClass = loaderClass ? env->GetMethodID(
-            loaderClass, "loadClass", "(Ljava/lang/String;)Ljava/lang/Class;"
-        ) : nullptr;
-        jstring className = env->NewStringUTF("com.geode.launcher.SpotifyAppRemoteBridge");
-        jobject result = (loadClass && className)
-            ? env->CallObjectMethod(loader, loadClass, className) : nullptr;
-        env->DeleteLocalRef(className);
-        if (env->ExceptionCheck()) { env->ExceptionClear(); result = nullptr; }
-        if (result) return reinterpret_cast<jclass>(result);
+    if (!bridge || env->ExceptionCheck()) {
+        if (env->ExceptionCheck()) env->ExceptionClear();
+        log::warn("Spotify App Remote bridge class not found from native code");
+        return nullptr;
     }
-    jclass fallback = env->FindClass("com/geode/launcher/SpotifyAppRemoteBridge");
-    if (env->ExceptionCheck()) env->ExceptionClear();
-    return fallback;
+    return bridge;
 }
 
 static bool callSpotifyBridge(const char* methodName, bool hasArgument, jint argument) {
     JavaVM* vm = cocos2d::JniHelper::getJavaVM();
     if (!vm) {
+        log::warn("Spotify bridge: Geode returned no JavaVM");
         return false;
     }
     JNIEnv* env = nullptr;
     bool attachedHere = false;
     jint envResult = vm->GetEnv(reinterpret_cast<void**>(&env), JNI_VERSION_1_6);
     if (envResult == JNI_EDETACHED) {
-        if (vm->AttachCurrentThread(&env, nullptr) != JNI_OK) return false;
+        if (vm->AttachCurrentThread(&env, nullptr) != JNI_OK) {
+            log::warn("Spotify bridge: failed to attach native thread to JVM");
+            return false;
+        }
         attachedHere = true;
     } else if (envResult != JNI_OK) {
         return false;
@@ -63,6 +50,8 @@ static bool callSpotifyBridge(const char* methodName, bool hasArgument, jint arg
             result = hasArgument
                 ? env->CallStaticBooleanMethod(bridge, method, argument)
                 : env->CallStaticBooleanMethod(bridge, method);
+        } else {
+            log::warn("Spotify bridge method not found: {}", methodName);
         }
         if (env->ExceptionCheck()) {
             env->ExceptionDescribe();
