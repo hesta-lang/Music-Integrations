@@ -273,7 +273,7 @@ public:
 
     void update(float dt) override {
         CCLayer::update(dt);
-        if (!m_background || !m_touchingButton || !m_dragged) return;
+        if (!m_background || !m_dragged) return;
         auto current = m_background->getPosition();
         // Frame-rate independent smoothing; roughly 100 ms of gentle follow lag.
         float blend = 1.f - std::exp(-12.f * std::min(dt, 0.1f));
