@@ -5,6 +5,7 @@
 
 #ifdef GEODE_IS_ANDROID
 #include <jni.h>
+#include <platform/android/jni/JniHelper.h>
 
 // Resolve the Kotlin bridge through the current thread's class loader. This is
 // safer than relying on FindClass from a native thread in an Android process.
@@ -39,9 +40,8 @@ static jclass getSpotifyBridgeClass(JNIEnv* env) {
 }
 
 static bool callSpotifyBridge(const char* methodName, bool hasArgument, jint argument) {
-    JavaVM* vm = nullptr;
-    jsize vmCount = 0;
-    if (JNI_GetCreatedJavaVMs(&vm, 1, &vmCount) != JNI_OK || vmCount == 0 || !vm) {
+    JavaVM* vm = cocos2d::JniHelper::getJavaVM();
+    if (!vm) {
         return false;
     }
     JNIEnv* env = nullptr;
