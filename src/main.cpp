@@ -221,7 +221,7 @@ public:
         }
 
         m_background->setPosition({54.f, size.height * 0.62f});
-        m_background->setOpacity(150); // Semi-transparent by default.
+        m_background->setOpacity(125); // 49% opacity while idle.
         this->addChild(m_background, 0);
         return true;
     }
@@ -268,7 +268,7 @@ public:
     void ccTouchEnded(CCTouch* touch, CCEvent* event) override {
         if (!m_touchingButton) return;
         m_touchingButton = false;
-        if (m_background) m_background->setOpacity(150); // Semi-transparent when idle.
+        if (m_background) m_background->setOpacity(125); // 49% opacity when idle.
         if (!m_dragged) {
             g_musicOverlayVisible = !g_musicOverlayVisible;
             auto overlay = MusicControlOverlay::get();
@@ -278,7 +278,7 @@ public:
 
     void ccTouchCancelled(CCTouch* touch, CCEvent* event) override {
         m_touchingButton = false;
-        if (m_background) m_background->setOpacity(150);
+        if (m_background) m_background->setOpacity(125);
     }
 };
 
