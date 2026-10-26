@@ -31,7 +31,7 @@ static jclass getSpotifyBridgeClass(JNIEnv* env) {
             ? env->CallObjectMethod(loader, loadClass, className) : nullptr;
         env->DeleteLocalRef(className);
         if (env->ExceptionCheck()) { env->ExceptionClear(); result = nullptr; }
-        if (result) return static_cast<jclass>(result);
+        if (result) return reinterpret_cast<jclass>(result);
     }
     jclass fallback = env->FindClass("com/geode/launcher/SpotifyAppRemoteBridge");
     if (env->ExceptionCheck()) env->ExceptionClear();
@@ -371,6 +371,7 @@ bool PlaybackManager::toggleControl() {
         #endif
         return true;
     }
+#endif
 }
 
 #ifdef GEODE_IS_WINDOWS
