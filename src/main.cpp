@@ -221,6 +221,7 @@ public:
         }
 
         m_background->setPosition({54.f, size.height * 0.62f});
+        m_background->setOpacity(150); // Semi-transparent by default.
         this->addChild(m_background, 0);
         return true;
     }
@@ -240,6 +241,7 @@ public:
         if (!bounds.containsPoint(point)) return false;
 
         m_touchingButton = true;
+        m_background->setOpacity(0); // Fully transparent while pressed/held.
         m_dragged = false;
         m_touchStart = point;
         m_startPosition = m_background->getPosition();
@@ -266,6 +268,7 @@ public:
     void ccTouchEnded(CCTouch* touch, CCEvent* event) override {
         if (!m_touchingButton) return;
         m_touchingButton = false;
+        if (m_background) m_background->setOpacity(150); // Semi-transparent when idle.
         if (!m_dragged) {
             g_musicOverlayVisible = !g_musicOverlayVisible;
             auto overlay = MusicControlOverlay::get();
@@ -275,6 +278,7 @@ public:
 
     void ccTouchCancelled(CCTouch* touch, CCEvent* event) override {
         m_touchingButton = false;
+        if (m_background) m_background->setOpacity(150);
     }
 };
 
