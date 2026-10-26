@@ -191,6 +191,7 @@ protected:
     CCLabelBMFont* m_label = nullptr;
     CCPoint m_touchStart = CCPointZero;
     CCPoint m_startPosition = CCPointZero;
+    CCPoint m_targetPosition = CCPointZero;
     bool m_dragged = false;
     bool m_touchingButton = false;
 
@@ -223,6 +224,8 @@ public:
         m_background->setPosition({54.f, size.height * 0.62f});
         m_background->setOpacity(125); // 49% opacity while idle.
         this->addChild(m_background, 0);
+        m_targetPosition = m_background->getPosition();
+        this->scheduleUpdate();
         return true;
     }
 
@@ -245,6 +248,7 @@ public:
         m_dragged = false;
         m_touchStart = point;
         m_startPosition = m_background->getPosition();
+        m_targetPosition = m_startPosition;
         return true;
     }
 
@@ -262,7 +266,21 @@ public:
         float halfHeight = bounds.size.height * 0.5f;
         float x = std::clamp(m_startPosition.x + dx, halfWidth, size.width - halfWidth);
         float y = std::clamp(m_startPosition.y + dy, halfHeight, size.height - halfHeight);
-        m_background->setPosition({x, y});
+        // Keep the finger's destination as a target; update() eases the button
+        // toward it over several frames for a smoother, slightly trailing feel.
+        m_targetPosition = {x, y};
+    }
+
+    void update(float dt) override {
+        CCLayer::update(dt);
+        if (!m_background || !m_touchingButton || !m_dragged) return;
+        auto current = m_background->getPosition();
+        // Frame-rate independent smoothing; roughly 100 ms of gentle follow lag.
+        float blend = 1.f - std::exp(-12.f * std::min(dt, 0.1f));
+        m_background->setPosition({
+            current.x + (m_targetPosition.x - current.x) * blend,
+            current.y + (m_targetPosition.y - current.y) * blend
+        });
     }
 
     void ccTouchEnded(CCTouch* touch, CCEvent* event) override {
