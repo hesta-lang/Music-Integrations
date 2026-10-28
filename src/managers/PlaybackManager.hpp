@@ -25,7 +25,7 @@ protected:
     async::TaskHolder<web::WebResponse> m_controlListener;
 
     int m_maxErrorLimit = 10;
-    std::chrono::seconds POLL_INTERVAL = std::chrono::seconds(4);
+    std::chrono::seconds POLL_INTERVAL = std::chrono::seconds(3);
     std::chrono::seconds DEFAULT_RETRY_AFTER = std::chrono::seconds(30);
     int m_spotifyErrorCount = 0;
     bool m_spotifyStopped = false;
