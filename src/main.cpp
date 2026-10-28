@@ -376,25 +376,22 @@ class $modify (EditorUI) {
     }
 };
 
-// Add the music toggle at scene level so it is available in the main menu,
-// Geode's menu, and level-related menus instead of only MenuLayer.
-class $modify(CCScene) {
-    void onEnter() {
-        CCScene::onEnter();
+// Keep the toggle attached to MenuLayer, whose lifecycle is known to work
+// reliably on Android. The scene-level hook caused the button to disappear.
+class $modify(MenuLayer) {
+    bool init() {
+        if (!MenuLayer::init()) return false;
 
-        // Do not show the floating menu button while playing or editing a level.
-        if (PlayLayer::get() || LevelEditorLayer::get()) return;
-
-        // Scene transitions/re-entry must not create duplicate buttons.
-        if (this->getChildByID("music-integrations-menu-toggle")) return;
-
-        auto toggle = DraggableMusicToggle::create();
-        if (toggle) {
-            toggle->setID("music-integrations-menu-toggle");
-            this->addChild(toggle, 999);
-            log::info("Music Integrations: menu button added to scene");
-        } else {
-            log::error("Music Integrations: failed to create scene menu button");
+        if (!this->getChildByID("music-integrations-menu-toggle")) {
+            auto toggle = DraggableMusicToggle::create();
+            if (toggle) {
+                toggle->setID("music-integrations-menu-toggle");
+                this->addChild(toggle, 999);
+                log::info("Music Integrations: menu button added to MenuLayer");
+            } else {
+                log::error("Music Integrations: failed to create menu button");
+            }
         }
+        return true;
     }
 };
