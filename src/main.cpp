@@ -323,20 +323,22 @@ public:
     }
 };
 
-// Add the toggle to the active scene rather than to popup/layer children. This
-// keeps its screen-space position stable across menus, pause dialogs and editor UI.
-static void ensureMusicToggleInScene() {
-    auto scene = CCScene::get();
-    if (!scene || scene->getChildByID("music-integrations-global-toggle")) return;
+// Attach to the actual screen layer that just initialized. A scene lookup during
+// init can still return the previous scene during transitions, making the button
+// appear to vanish. Convert the screen origin into the host's local coordinates
+// so the full-screen draggable layer remains aligned even inside popup layers.
+static void ensureMusicToggleOnNode(CCNode* host) {
+    if (!host || host->getChildByID("music-integrations-toggle")) return;
 
     auto toggle = DraggableMusicToggle::create();
     if (!toggle) {
-        log::error("Music Integrations: failed to create scene music toggle");
+        log::error("Music Integrations: failed to create music toggle");
         return;
     }
-    toggle->setID("music-integrations-global-toggle");
-    scene->addChild(toggle, 999999);
-    log::info("Music Integrations: scene music toggle added");
+    toggle->setID("music-integrations-toggle");
+    toggle->setPosition(host->convertToNodeSpace(CCPointZero));
+    host->addChild(toggle, 999999);
+    log::info("Music Integrations: toggle added to screen layer");
 }
 
 class $modify(LevelEditorLayer) {
@@ -357,7 +359,7 @@ class $modify(LevelEditorLayer) {
     }
     bool init(GJGameLevel* p0, bool p1) {
         if (!LevelEditorLayer::init(p0, p1)) return false;
-        ensureMusicToggleInScene();
+        ensureMusicToggleOnNode(this);
         if (!Mod::get()->getSavedValue<bool>("autoEnabled")) return true;
         auto& pbm = PlaybackManager::get();
         pbm.m_immune = false;
@@ -422,7 +424,7 @@ class $modify (EditorUI) {
 class $modify(MenuLayer) {
     bool init() {
         if (!MenuLayer::init()) return false;
-        ensureMusicToggleInScene();
+        ensureMusicToggleOnNode(this);
         return true;
     }
 };
@@ -430,7 +432,7 @@ class $modify(MenuLayer) {
 class $modify(LevelSelectLayer) {
     bool init(int page) {
         if (!LevelSelectLayer::init(page)) return false;
-        ensureMusicToggleInScene();
+        ensureMusicToggleOnNode(this);
         return true;
     }
 };
@@ -438,7 +440,7 @@ class $modify(LevelSelectLayer) {
 class $modify(LevelInfoLayer) {
     bool init(GJGameLevel* level, bool challenge) {
         if (!LevelInfoLayer::init(level, challenge)) return false;
-        ensureMusicToggleInScene();
+        ensureMusicToggleOnNode(this);
         return true;
     }
 };
@@ -446,7 +448,7 @@ class $modify(LevelInfoLayer) {
 class $modify(PauseLayer) {
     bool init(GJGameLevel* level) {
         if (!PauseLayer::init(level)) return false;
-        ensureMusicToggleInScene();
+        ensureMusicToggleOnNode(this);
         return true;
     }
 };
