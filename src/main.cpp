@@ -323,21 +323,19 @@ public:
     }
 };
 
-// The toggle belongs to the running scene, not to MenuLayer, PauseLayer or
-// other transient popup/layer nodes. This lets it stay above pause dialogs and
-// exist in every newly entered scene, including editor and level-selection scenes.
-static void ensureMusicToggleOnScene(CCScene* scene) {
-    if (!scene || scene->getChildByID("music-integrations-global-toggle")) return;
-
+// Attach the toggle directly to a known visible screen. Using a zero local
+// position avoids coordinate conversion failures on Android scene/layer trees.
+static void ensureMusicToggleOnNode(CCNode* host) {
+    if (!host || host->getChildByID("music-integrations-global-toggle")) return;
     auto toggle = DraggableMusicToggle::create();
     if (!toggle) {
-        log::error("Music Integrations: failed to create scene music toggle");
+        log::error("Music Integrations: failed to create music toggle");
         return;
     }
     toggle->setID("music-integrations-global-toggle");
     toggle->setPosition(CCPointZero);
-    scene->addChild(toggle, 999999);
-    log::info("Music Integrations: global scene toggle added");
+    host->addChild(toggle, 999999);
+    log::info("Music Integrations: music toggle attached to screen node");
 }
 
 class $modify(LevelEditorLayer) {
@@ -358,7 +356,7 @@ class $modify(LevelEditorLayer) {
     }
     bool init(GJGameLevel* p0, bool p1) {
         if (!LevelEditorLayer::init(p0, p1)) return false;
-        ensureMusicToggleOnScene(CCScene::get());
+        ensureMusicToggleOnNode(this);
         if (!Mod::get()->getSavedValue<bool>("autoEnabled")) return true;
         auto& pbm = PlaybackManager::get();
         pbm.m_immune = false;
@@ -418,12 +416,35 @@ class $modify (EditorUI) {
     }
 };
 
-// Add the button whenever a new scene enters. Pause menus are popup layers
-// inside the existing scene, so the high-z-order scene child remains visible
-// over them without needing a separate PauseLayer button.
-class $modify(CCScene) {
-    void onEnter() {
-        CCScene::onEnter();
-        ensureMusicToggleOnScene(this);
+// Add the toggle to each screen type directly. In particular, MenuLayer is
+// the known-good fallback if Android does not dispatch the CCScene hook.
+class $modify(MenuLayer) {
+    bool init() {
+        if (!MenuLayer::init()) return false;
+        ensureMusicToggleOnNode(this);
+        return true;
+    }
+};
+
+class $modify(LevelSelectLayer) {
+    bool init(int p0) {
+        if (!LevelSelectLayer::init(p0)) return false;
+        ensureMusicToggleOnNode(this);
+        return true;
+    }
+};
+
+class $modify(LevelInfoLayer) {
+    bool init(GJGameLevel* level, bool challenge) {
+        if (!LevelInfoLayer::init(level, challenge)) return false;
+        ensureMusicToggleOnNode(this);
+        return true;
+    }
+};
+
+class $modify(PauseLayer) {
+    void customSetup() {
+        PauseLayer::customSetup();
+        ensureMusicToggleOnNode(this);
     }
 };
