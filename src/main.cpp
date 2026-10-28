@@ -323,22 +323,21 @@ public:
     }
 };
 
-// Attach to the actual screen layer that just initialized. A scene lookup during
-// init can still return the previous scene during transitions, making the button
-// appear to vanish. Convert the screen origin into the host's local coordinates
-// so the full-screen draggable layer remains aligned even inside popup layers.
-static void ensureMusicToggleOnNode(CCNode* host) {
-    if (!host || host->getChildByID("music-integrations-toggle")) return;
+// The toggle belongs to the running scene, not to MenuLayer, PauseLayer or
+// other transient popup/layer nodes. This lets it stay above pause dialogs and
+// exist in every newly entered scene, including editor and level-selection scenes.
+static void ensureMusicToggleOnScene(CCScene* scene) {
+    if (!scene || scene->getChildByID("music-integrations-global-toggle")) return;
 
     auto toggle = DraggableMusicToggle::create();
     if (!toggle) {
-        log::error("Music Integrations: failed to create music toggle");
+        log::error("Music Integrations: failed to create scene music toggle");
         return;
     }
-    toggle->setID("music-integrations-toggle");
-    toggle->setPosition(host->convertToNodeSpace(CCPointZero));
-    host->addChild(toggle, 999999);
-    log::info("Music Integrations: toggle added to screen layer");
+    toggle->setID("music-integrations-global-toggle");
+    toggle->setPosition(CCPointZero);
+    scene->addChild(toggle, 999999);
+    log::info("Music Integrations: global scene toggle added");
 }
 
 class $modify(LevelEditorLayer) {
@@ -359,7 +358,7 @@ class $modify(LevelEditorLayer) {
     }
     bool init(GJGameLevel* p0, bool p1) {
         if (!LevelEditorLayer::init(p0, p1)) return false;
-        ensureMusicToggleOnNode(this);
+        ensureMusicToggleOnScene(CCScene::get());
         if (!Mod::get()->getSavedValue<bool>("autoEnabled")) return true;
         auto& pbm = PlaybackManager::get();
         pbm.m_immune = false;
@@ -419,36 +418,12 @@ class $modify (EditorUI) {
     }
 };
 
-// Trigger creation from each relevant screen, but keep the actual button in
-// the scene so it is not clipped or repositioned by popup/layer transforms.
-class $modify(MenuLayer) {
-    bool init() {
-        if (!MenuLayer::init()) return false;
-        ensureMusicToggleOnNode(this);
-        return true;
-    }
-};
-
-class $modify(LevelSelectLayer) {
-    bool init(int page) {
-        if (!LevelSelectLayer::init(page)) return false;
-        ensureMusicToggleOnNode(this);
-        return true;
-    }
-};
-
-class $modify(LevelInfoLayer) {
-    bool init(GJGameLevel* level, bool challenge) {
-        if (!LevelInfoLayer::init(level, challenge)) return false;
-        ensureMusicToggleOnNode(this);
-        return true;
-    }
-};
-
-class $modify(PauseLayer) {
-    bool init(GJGameLevel* level) {
-        if (!PauseLayer::init(level)) return false;
-        ensureMusicToggleOnNode(this);
-        return true;
+// Add the button whenever a new scene enters. Pause menus are popup layers
+// inside the existing scene, so the high-z-order scene child remains visible
+// over them without needing a separate PauseLayer button.
+class $modify(CCScene) {
+    void onEnter() {
+        CCScene::onEnter();
+        ensureMusicToggleOnScene(this);
     }
 };
