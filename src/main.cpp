@@ -12,6 +12,8 @@
 #include <Geode/modify/CustomSongWidget.hpp>
 #include <Geode/modify/EditorUI.hpp>
 #include <Geode/modify/PauseLayer.hpp>
+#include <Geode/modify/LevelSelectLayer.hpp>
+#include <Geode/modify/LevelInfoLayer.hpp>
 #include <Geode/modify/MenuLayer.hpp>
 #include <Geode/modify/CCDirector.hpp>
 
@@ -184,6 +186,8 @@ class $modify(FMODAudioEngine) {
     }
 };
 
+static bool g_spotifyWasPlayingBeforeLevel = false;
+
 class DraggableMusicToggle : public CCLayer {
 protected:
     CCSprite* m_background = nullptr;
@@ -319,6 +323,22 @@ public:
     }
 };
 
+// Add the toggle to the active scene rather than to popup/layer children. This
+// keeps its screen-space position stable across menus, pause dialogs and editor UI.
+static void ensureMusicToggleInScene() {
+    auto scene = CCScene::get();
+    if (!scene || scene->getChildByID("music-integrations-global-toggle")) return;
+
+    auto toggle = DraggableMusicToggle::create();
+    if (!toggle) {
+        log::error("Music Integrations: failed to create scene music toggle");
+        return;
+    }
+    toggle->setID("music-integrations-global-toggle");
+    scene->addChild(toggle, 999999);
+    log::info("Music Integrations: scene music toggle added");
+}
+
 class $modify(LevelEditorLayer) {
     void onPlaytest() {        
         LevelEditorLayer::onPlaytest();
@@ -337,6 +357,7 @@ class $modify(LevelEditorLayer) {
     }
     bool init(GJGameLevel* p0, bool p1) {
         if (!LevelEditorLayer::init(p0, p1)) return false;
+        ensureMusicToggleInScene();
         if (!Mod::get()->getSavedValue<bool>("autoEnabled")) return true;
         auto& pbm = PlaybackManager::get();
         pbm.m_immune = false;
@@ -349,9 +370,14 @@ class $modify(PlayLayer) {
     bool init(GJGameLevel* level, bool useReplay, bool dontCreateObjects) {
         if (!PlayLayer::init(level, useReplay, dontCreateObjects)) return false;
 
-        // Always pause external Spotify playback when a level starts,
-        // even when automatic music synchronization is disabled.
+        // Remember whether Spotify was playing before entering the level.
+        // Android's App Remote reports this synchronously, so we can safely
+        // pause immediately and only resume on exit when it was previously playing.
         auto& pbm = PlaybackManager::get();
+        g_spotifyWasPlayingBeforeLevel = false;
+        pbm.isPlaybackActive([](bool playing) {
+            g_spotifyWasPlayingBeforeLevel = playing;
+        });
         pbm.control(false);
 
         if (Mod::get()->getSavedValue<bool>("autoEnabled")) {
@@ -361,10 +387,20 @@ class $modify(PlayLayer) {
     }
     void onQuit() {
         PlayLayer::onQuit();
-        if (!Mod::get()->getSavedValue<bool>("autoEnabled")) return;
         auto& pbm = PlaybackManager::get();
-        pbm.m_immune = false;
-        if(!FMODAudioEngine::sharedEngine()->isMusicPlaying(0)) pbm.control(true);
+
+        if (Mod::get()->getSavedValue<bool>("autoEnabled")) {
+            pbm.m_immune = false;
+        }
+
+        // Restore playback only if Spotify was playing when the level began.
+        bool shouldResume = g_spotifyWasPlayingBeforeLevel;
+        g_spotifyWasPlayingBeforeLevel = false;
+        if (shouldResume &&
+            (!Mod::get()->getSavedValue<bool>("autoEnabled") ||
+             !FMODAudioEngine::sharedEngine()->isMusicPlaying(0))) {
+            pbm.control(true);
+        }
     }
 };
 
@@ -381,22 +417,36 @@ class $modify (EditorUI) {
     }
 };
 
-// Keep the toggle attached to MenuLayer, whose lifecycle is known to work
-// reliably on Android. The scene-level hook caused the button to disappear.
+// Trigger creation from each relevant screen, but keep the actual button in
+// the scene so it is not clipped or repositioned by popup/layer transforms.
 class $modify(MenuLayer) {
     bool init() {
         if (!MenuLayer::init()) return false;
+        ensureMusicToggleInScene();
+        return true;
+    }
+};
 
-        if (!this->getChildByID("music-integrations-menu-toggle")) {
-            auto toggle = DraggableMusicToggle::create();
-            if (toggle) {
-                toggle->setID("music-integrations-menu-toggle");
-                this->addChild(toggle, 999);
-                log::info("Music Integrations: menu button added to MenuLayer");
-            } else {
-                log::error("Music Integrations: failed to create menu button");
-            }
-        }
+class $modify(LevelSelectLayer) {
+    bool init(int page) {
+        if (!LevelSelectLayer::init(page)) return false;
+        ensureMusicToggleInScene();
+        return true;
+    }
+};
+
+class $modify(LevelInfoLayer) {
+    bool init(GJGameLevel* level, bool challenge) {
+        if (!LevelInfoLayer::init(level, challenge)) return false;
+        ensureMusicToggleInScene();
+        return true;
+    }
+};
+
+class $modify(PauseLayer) {
+    bool init(GJGameLevel* level) {
+        if (!PauseLayer::init(level)) return false;
+        ensureMusicToggleInScene();
         return true;
     }
 };
