@@ -194,6 +194,17 @@ protected:
     CCPoint m_targetPosition = CCPointZero;
     bool m_dragged = false;
     bool m_touchingButton = false;
+    float m_normalScale = 1.f;
+
+    void animateButtonScale(float targetScale) {
+        if (!m_background) return;
+        m_background->stopActionByTag(8675309);
+        auto action = CCEaseSineOut::create(
+            CCScaleTo::create(0.10f, m_normalScale * targetScale)
+        );
+        action->setTag(8675309);
+        m_background->runAction(action);
+    }
 
 public:
     static DraggableMusicToggle* create() {
@@ -222,6 +233,7 @@ public:
         }
 
         m_background->setPosition({54.f, size.height * 0.62f});
+        m_normalScale = m_background->getScale();
         m_background->setOpacity(125); // 49% opacity while idle.
         this->addChild(m_background, 0);
         m_targetPosition = m_background->getPosition();
@@ -245,7 +257,7 @@ public:
 
         m_touchingButton = true;
         m_background->setOpacity(255); // Restore normal opacity while pressed/held.
-        m_background->setScale(0.85f); // Pressed feedback: shrink to 85% while held.
+        animateButtonScale(0.85f); // Smoothly shrink to 85% while held.
         m_dragged = false;
         m_touchStart = point;
         m_startPosition = m_background->getPosition();
@@ -289,7 +301,7 @@ public:
         m_touchingButton = false;
         if (m_background) {
             m_background->setOpacity(125); // 49% opacity when idle.
-            m_background->setScale(1.0f);  // Restore original size after release.
+            animateButtonScale(1.0f); // Smoothly restore original size after release.
         }
         if (!m_dragged) {
             g_musicOverlayVisible = !g_musicOverlayVisible;
@@ -302,7 +314,7 @@ public:
         m_touchingButton = false;
         if (m_background) {
             m_background->setOpacity(125);
-            m_background->setScale(1.0f); // Also restore size if the touch is cancelled.
+            animateButtonScale(1.0f); // Also restore size if the touch is cancelled.
         }
     }
 };
