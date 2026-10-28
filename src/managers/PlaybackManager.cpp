@@ -508,7 +508,7 @@ void PlaybackManager::pollSpotify(bool force) {
     if (!spotifyCanRequest(true)) return;
 
     auto now = std::chrono::steady_clock::now();
-    if (now - m_lastPoll < POLL_INTERVAL) return;
+    if (!force && now - m_lastPoll < POLL_INTERVAL) return;
 
     std::string token = Mod::get()->getSavedValue<std::string>("spotify-token", "");
     if (token.empty()) {
@@ -622,7 +622,15 @@ void PlaybackManager::spotifyisPlaybackActive(std::string token, std::function<v
             }
             
             if (code == 500) { Mod::get()->setSavedValue<bool>("hasAuthorizedAndroid", false); return; }
-            if (code == 204) { log::debug("No active device"); return; }
+            if (code == 204) {
+                log::debug("No active playback; clearing displayed track");
+                Loader::get()->queueInMainThread([] {
+                    SongUpdateEvent("title-update"_spr).send("No Song");
+                    SongUpdateEvent("artist-update"_spr).send("No Artist");
+                    PlaybackUpdateEvent("playback-update"_spr).send(false);
+                });
+                return;
+            }
             
             if (value.ok()) {
                 spotifyOnSuccess();
@@ -751,7 +759,12 @@ void PlaybackManager::spotifyGetPlaybackInfo(std::string token, int retryCount) 
             auto root = jsonResult.unwrap();
             if (!root.contains("currently_playing_type") ||
                 root["currently_playing_type"].asString().unwrapOr("") != "track") {
-                log::debug("Nothing playable right now");
+                log::debug("Nothing playable right now; clearing displayed track");
+                Loader::get()->queueInMainThread([] {
+                    SongUpdateEvent("title-update"_spr).send("No Song");
+                    SongUpdateEvent("artist-update"_spr).send("No Artist");
+                    PlaybackUpdateEvent("playback-update"_spr).send(false);
+                });
                 return;
             }
             
