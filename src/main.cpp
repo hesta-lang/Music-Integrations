@@ -245,6 +245,7 @@ public:
 
         m_touchingButton = true;
         m_background->setOpacity(255); // Restore normal opacity while pressed/held.
+        m_background->setScale(0.85f); // Pressed feedback: shrink to 85% while held.
         m_dragged = false;
         m_touchStart = point;
         m_startPosition = m_background->getPosition();
@@ -286,7 +287,10 @@ public:
     void ccTouchEnded(CCTouch* touch, CCEvent* event) override {
         if (!m_touchingButton) return;
         m_touchingButton = false;
-        if (m_background) m_background->setOpacity(125); // 49% opacity when idle.
+        if (m_background) {
+            m_background->setOpacity(125); // 49% opacity when idle.
+            m_background->setScale(1.0f);  // Restore original size after release.
+        }
         if (!m_dragged) {
             g_musicOverlayVisible = !g_musicOverlayVisible;
             auto overlay = MusicControlOverlay::get();
@@ -296,7 +300,10 @@ public:
 
     void ccTouchCancelled(CCTouch* touch, CCEvent* event) override {
         m_touchingButton = false;
-        if (m_background) m_background->setOpacity(125);
+        if (m_background) {
+            m_background->setOpacity(125);
+            m_background->setScale(1.0f); // Also restore size if the touch is cancelled.
+        }
     }
 };
 
