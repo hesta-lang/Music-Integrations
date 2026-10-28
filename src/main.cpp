@@ -348,10 +348,15 @@ class $modify(LevelEditorLayer) {
 class $modify(PlayLayer) {
     bool init(GJGameLevel* level, bool useReplay, bool dontCreateObjects) {
         if (!PlayLayer::init(level, useReplay, dontCreateObjects)) return false;
-        if (!Mod::get()->getSavedValue<bool>("autoEnabled")) return true;
+
+        // Always pause external Spotify playback when a level starts,
+        // even when automatic music synchronization is disabled.
         auto& pbm = PlaybackManager::get();
         pbm.control(false);
-        pbm.m_immune = true;
+
+        if (Mod::get()->getSavedValue<bool>("autoEnabled")) {
+            pbm.m_immune = true;
+        }
         return true;
     }
     void onQuit() {
