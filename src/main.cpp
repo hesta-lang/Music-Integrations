@@ -228,9 +228,9 @@ public:
         this->setContentSize(size);
         this->setTouchEnabled(true);
 
-        // Use the mod's own menu artwork. Geode selects the matching
-        // -hd/-uhd resource variant for the device resolution.
-        m_background = CCSprite::create("MH_menu.png"_spr);
+        // Use Music Integrations' own icon, not MH_menu.png (that artwork
+        // belongs to Mega Hack and makes our toggle indistinguishable from it).
+        m_background = CCSprite::create("default.png"_spr);
         if (!m_background) {
             log::error("Music Integrations: failed to load MH_menu.png resource");
             return false;
