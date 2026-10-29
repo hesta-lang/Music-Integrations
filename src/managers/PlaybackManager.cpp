@@ -332,6 +332,14 @@ bool PlaybackManager::skip(bool direction) {
 #endif
 }
 
+bool PlaybackManager::selectLocalMusicFolder() {
+#ifdef GEODE_IS_ANDROID
+    return callSpotifyBridge("requestControl", true, 4);
+#else
+    return false;
+#endif
+}
+
 bool PlaybackManager::toggleControl() {
 #ifdef GEODE_IS_ANDROID
     return callSpotifyBridge("requestControl", true, callSpotifyBridge("isPlaying", false, 0) ? 0 : 1);
