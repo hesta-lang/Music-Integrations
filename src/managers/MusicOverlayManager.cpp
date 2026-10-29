@@ -33,6 +33,7 @@ protected:
     CCMenuItemSpriteExtra* m_rewindBtn;
     CCMenuItemSpriteExtra* m_playbackBtn;
     CCMenuItemSpriteExtra* m_skipBtn;
+    CCMenuItemSpriteExtra* m_localBtn;
     CCMenuItemToggler* m_autoBtn;
     PlaybackManager& pbm = PlaybackManager::get();
     ListenerHandle m_titleListener;
@@ -66,7 +67,7 @@ protected:
         #ifdef GEODE_IS_WINDOWS
         if(pbm.m_mediaManager || Mod::get()->getSavedValue<bool>("hasAuthorizedAndroid")) {
         #else
-        if(Mod::get()->getSavedValue<bool>("hasAuthorizedAndroid")) {
+        {
         #endif
             m_musicTitle = createMusicLabel("No Song");
             m_musicTitle->setLimitLabelWidth(300.f, 1.5f, 0.1f);
@@ -123,6 +124,14 @@ protected:
                 menu_selector(MusicControlOverlay::onToggleAuto)
             );
 
+            auto localLabel = CCLabelBMFont::create("LOCAL", "bigFont.fnt");
+            localLabel->setScale(0.55f);
+            m_localBtn = CCMenuItemSpriteExtra::create(
+                localLabel,
+                this,
+                menu_selector(MusicControlOverlay::onChooseLocalMusic)
+            );
+
             m_autoLabel = CCLabelBMFont::create("Auto", "bigFont.fnt");
             m_autoLabel->setScale(0.7f);
 
@@ -131,6 +140,7 @@ protected:
             m_menu->addChild(m_playbackBtn);
             m_menu->addChild(m_skipBtn);
             m_menu->addChild(m_autoBtn);
+            m_menu->addChild(m_localBtn);
             m_menu->setTouchPriority(-999);
             m_menu->updateLayout();
             this->addChildAtPosition(m_menu, Anchor::Bottom, ccp(10, this->getContentHeight()/4));
@@ -156,6 +166,10 @@ protected:
 
     void onPrevious(CCObject*) {
         pbm.skip(false);
+    }
+
+    void onChooseLocalMusic(CCObject*) {
+        pbm.selectLocalMusicFolder();
     }
 
     void onToggleAuto(CCObject* btn) {
