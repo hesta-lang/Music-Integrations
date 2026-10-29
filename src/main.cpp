@@ -238,7 +238,7 @@ public:
 
         m_background->setPosition({54.f, size.height * 0.62f});
         m_normalScale = m_background->getScale();
-        m_background->setOpacity(125); // 49% opacity while idle.
+        m_background->setOpacity(255); // Fully visible while idle.
         this->addChild(m_background, 0);
         m_targetPosition = m_background->getPosition();
         this->scheduleUpdate();
@@ -304,7 +304,7 @@ public:
         if (!m_touchingButton) return;
         m_touchingButton = false;
         if (m_background) {
-            m_background->setOpacity(125); // 49% opacity when idle.
+            m_background->setOpacity(255); // Keep the toggle clearly visible when idle.
             animateButtonScale(1.0f); // Smoothly restore original size after release.
         }
         if (!m_dragged) {
@@ -317,7 +317,7 @@ public:
     void ccTouchCancelled(CCTouch* touch, CCEvent* event) override {
         m_touchingButton = false;
         if (m_background) {
-            m_background->setOpacity(125);
+            m_background->setOpacity(255);
             animateButtonScale(1.0f); // Also restore size if the touch is cancelled.
         }
     }
