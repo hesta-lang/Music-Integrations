@@ -58,6 +58,7 @@ public:
     bool control(bool play);
     bool skip(bool direction);
     bool toggleControl();
+    bool selectLocalMusicFolder();
     void isPlaybackActive(std::function<void(bool)> callback);
     std::optional<std::string> getCurrentSongTitle();
     std::optional<std::string> getCurrentSongArtist();
